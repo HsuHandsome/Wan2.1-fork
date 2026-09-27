@@ -288,11 +288,13 @@ class WanAttentionBlock(nn.Module):
         r"""
         Args:
             x(Tensor): Shape [B, L, C]
-            e(Tensor): Shape [B, 6, C]
+            e(Tensor): Shape [B, 6, C]时间嵌入
             seq_lens(Tensor): Shape [B], length of each sequence in batch
             grid_sizes(Tensor): Shape [B, 3], the second dimension contains (F, H, W)
             freqs(Tensor): Rope freqs, shape [1024, C / num_heads / 2]
+            context：文字、图像上下文（用户输入给模型）
         """
+        #e作为时间条件，单独主导DiT中的adaLN门控；上下文条件通过交叉注意力与输入的数据交互
         assert e.dtype == torch.float32
         with amp.autocast(dtype=torch.float32):
             e = (self.modulation + e).chunk(6, dim=1)
@@ -527,7 +529,7 @@ class WanModel(ModelMixin, ConfigMixin):
         if self.freqs.device != device:
             self.freqs = self.freqs.to(device)
 
-        if y is not None:
+        if y is not None:#通道维度拼接半成品x和潜视频y，y由输入图像+空白帧扩展成完整视频长度→VAE输出潜视频→通道维度拼接掩码组成。
             x = [torch.cat([u, v], dim=0) for u, v in zip(x, y)]
 
         # embeddings
@@ -559,8 +561,8 @@ class WanModel(ModelMixin, ConfigMixin):
             ]))
 
         if clip_fea is not None:
-            context_clip = self.img_emb(clip_fea)  # bs x 257 (x2) x dim
-            context = torch.concat([context_clip, context], dim=1)
+            context_clip = self.img_emb(clip_fea)  # bs x 257 (x2) x dim。CLIP编码的图像语义，再进行嵌入
+            context = torch.concat([context_clip, context], dim=1)#拼接上下文，图像+文字
 
         # arguments
         kwargs = dict(
