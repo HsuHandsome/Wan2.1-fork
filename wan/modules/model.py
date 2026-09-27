@@ -317,7 +317,7 @@ class WanAttentionBlock(nn.Module):
         return x
 
 
-class Head(nn.Module):
+class Head(nn.Module):#最终层
 
     def __init__(self, dim, out_dim, patch_size, eps=1e-6):
         super().__init__()
