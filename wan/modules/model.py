@@ -312,7 +312,7 @@ class WanAttentionBlock(nn.Module):
             with amp.autocast(dtype=torch.float32):
                 x = x + y * e[5]
             return x
-
+        #相比DiT的简单实现，这里的模型增加了和文本、图像编码的交叉注意力，作为更强的条件。
         x = cross_attn_ffn(x, context, context_lens, e)
         return x
 
